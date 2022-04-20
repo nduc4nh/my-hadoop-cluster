@@ -53,3 +53,8 @@ __/
 * [Hive](https://dlcdn.apache.org/hive/) (B)
 
 **Note**: *Hadoop must be installed first before taking any action related to other tools*
+
+## References:
+
+* [Hadoop setup](https://github.com/nduc4nh/my-hadoop-cluster/tree/main/hadoop)
+* [Hive setup](https://github.com/nduc4nh/my-hadoop-cluster/tree/main/hive)
