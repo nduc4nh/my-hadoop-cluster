@@ -4,6 +4,7 @@
 * HDFS
 * YARN
 * HIVE
+* Spark
 
 ## PROJECT STRUCTURE
 
@@ -31,7 +32,10 @@ __/
   |
   |
   |__downloads
-        |____README.md
+  |          |____README.md
+  |
+  |__spark
+          \____README.md
 ```
 
 **hadoop**: includes hadoop setup, config files
@@ -52,9 +56,12 @@ __/
 
 * [Hive](https://dlcdn.apache.org/hive/) (B)
 
+* [Spark](https://spark.apache.org/downloads.html)
+
 **Note**: *Hadoop must be installed first before taking any action related to other tools*
 
 ## References:
 
 * [Hadoop setup](https://github.com/nduc4nh/my-hadoop-cluster/tree/main/hadoop)
 * [Hive setup](https://github.com/nduc4nh/my-hadoop-cluster/tree/main/hive)
+* [Spark](https://github.com/nduc4nh/my-hadoop-cluster/tree/main/spark)
