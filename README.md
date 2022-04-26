@@ -56,7 +56,7 @@ __/
 
 * [Hive](https://dlcdn.apache.org/hive/) (B)
 
-* [Spark](https://spark.apache.org/downloads.html) (B)
+* [Spark](https://spark.apache.org/downloads.html) ()
 
 **Note**: *Hadoop must be installed first before taking any action related to other tools*
 
