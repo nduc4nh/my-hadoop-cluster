@@ -38,6 +38,9 @@ export PATH=$PATH:$HIVE_HOME/bin
 > hadoop -fs -mkdir /usr/hive/warehouse
 > hadoop -fs -mkdir /tmp
 ```
+
+The `/user/hive/warehouse` is where Apache Hive stores the pernament data while `/tmp` is the location for temporary data for each active session of the server
+
 * Set READ/WRITE permission for `/warehouse` and `/tmp`
 
 ```
@@ -83,7 +86,7 @@ export YARN_HOME=$YARN_HOME
 > mv hive-exec-log4j2.properties.template hive-exec-log4j2.properties
 ```
 
-Edit theese 2 files
+Edit these 2 files
 
 ```
 nano hive-log4j2.properties
@@ -100,15 +103,11 @@ nano hive-exec-log4j2.properties
 
 inside `mapred-site.xml`
 ```
-<property>
+<property> 
 <name>mapreduce.application.classpath</name>
-<value>
-<!--
-refer this to your own path
--->
-$HADOOP_CLIENT_CONF_DIR,$HADOOP_CONF_DIR,$HADOOP_COMMON_HOME/*,$HADOOP_COMMON_HOME/lib/*,$HADOOP_HDFS_HOME/*,$HADOOP_HDFS_HOME/lib/*,$HADOOP_YARN_HOME/*,$HADOOP_YARN_HOME/lib/*,$HADOOP_MAPRED_HOME/*,$HADOOP_MAPRED_HOME/lib/*,$MR2_CLASSPATH,/usr/local/hadoop/share/hadoop/mapreduce/*,/usr/local/hadoop/share/hadoop/mapreduce/lib/*,/usr/local/hadoop/share/hadoop/hdfs/*,/usr/local/hadoop/share/hadoop/hdfs/lib/*,/usr/local/hadoop/share/hadoop/common/lib/*,/usr/local/hadoop/share/hadoop/common/*,/usr/local/hadoop/share/hadoop/yarn/lib/*,/usr/local/hadoop/share/hadoop/yarn/*
-</value>
+<value>$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*,$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*,$HADOOP_MAPRED_HOME/share/hadoop/common/*,$HADOOP_MAPRED_HOME/share/hadoop/common/lib/*,$HADOOP_MAPRED_HOME/share/hadoop/yarn/*,$HADOOP_MAPRED_HOME/share/hadoop/yarn/lib/*,$HADOOP_MAPRED_HOME/share/hadoop/hdfs/*,$HADOOP_MAPRED_HOME/share/hadoop/hdfs/lib/*</value>
 </property>
+<!-- note that for each path $var will be followed by another $var/lib>
 ```
 
 * Create new file `hive-site.xml`. This file contains Hive configuration
@@ -116,6 +115,13 @@ $HADOOP_CLIENT_CONF_DIR,$HADOOP_CONF_DIR,$HADOOP_COMMON_HOME/*,$HADOOP_COMMON_HO
 ```
 > $HIVE_HOME/conf/hive-site.xml
 ```
+The `hive-site.xml` is where we configure the `metastore` and `hiveserver2` settings. There are so many ways to setup configuration for these 2 based on system deployment. In this document, 2 main ways are illustrated:
+1. Local metastore service
+2. Remote metastore service with `postgreSQL`
+
+### Local metastore service setup
+
+For this setup, the database is `derby` which already supported by Hive in the hive distribution
 
 Inside `hive-site.xml`, add meta-store connection URL in this file. Adjust hive path as per your version. Default meta-store is `Derby database` for  Hive. Remove metastore directory if it already exist. This may exist from previous installations.
 ```
@@ -133,6 +139,103 @@ Inside `hive-site.xml`, add meta-store connection URL in this file. Adjust hive 
   </property>
 </configuration>  
 ```
+### Remote metastore server setup
+
+* Requirement:
+  * Installed postgres
+  * Postgres.jar file
+   
+For short, `postgres` should be installed in your remote system following [this](https://www.postgresguide.com/setup/install/). Next, create an user with password to access postgres database.
+
+```
+# after installing postgres, a new user named postgress will be added to the system
+> sudo su - postgres 
+~# psql
+postgres=# [Create new user with password cmd :)]
+postgres=# [Create database named metastore]
+postgres=#\q
+~# exit
+```
+
+Next, copy the `postgres--xx .jar` file into `path\to\hive\lib`. The metastore server should be configured to connect to postgres database. Therefore, the hive-site.xml should look like this
+
+```
+<configuration>
+	<property>
+		<name>javax.jdo.option.ConnectionURL</name>
+		<value>jdbc:postgresql://[remote-host-ip]:5432/metastore</value>
+	</property>
+
+	<property>
+		<name>javax.jdo.option.ConnectionDriverName</name>
+		<value>org.postgresql.Driver</value>
+	</property>
+
+	<property>
+		<name>javax.jdo.option.ConnectionUserName</name>
+		<value>[your postgres username]</value>
+	</property>
+
+	<property>
+		<name>javax.jdo.option.ConnectionPassword</name>
+		<value>[your postgres password]</value>
+	</property>
+
+	<property>
+		<name>datanucleus.autoCreateSchema</name>
+		<value>false</value>
+	</property>
+
+	<property>
+		<name>datanucleus.fixedDatastore</name>
+		<value>true</value>
+	</property>
+
+	<property>
+		<name>datanucleus.autoStartMechanism</name> 
+		<value>SchemaTable</value>
+	</property> 
+
+	<property>
+		<name>hive.metastore.event.db.notification.api.auth</name>
+		<value>false</value>
+		<description>
+       Should metastore do authorization against database notification related APIs such as get_next_notification.
+       If set to true, then only the superusers in proxy settings have the permission
+		</description>
+	</property>
+
+#Hive server config
+<property>
+  <name>hive.server2.enable.doAs</name>
+  <value>false</value> 
+  </property>
+
+<property>
+<name>hive.server2.authentication</name>
+<value>CUSTOM</value>
+</property>
+
+<property>
+<name>hive.server2.custom.authentication.class</name>
+<value>hive.test.DagFptAuthenticator</value>
+</property>
+
+<property>
+  <name>hive.metastore.uris</name>
+  <value>thrift://10.14.106.45:9083</value>
+  <description>IP address (or fully-qualified domain name) and port of the metastore host</description>
+</property>
+
+<property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+</property>
+
+
+```
+
+
 
 ## Hive Initialization
 This section informs the actions taken as the preparation for Hive
@@ -173,3 +276,23 @@ Test hive
 hive > show tables;
 ..
 ```
+
+Run hive metastore
+```
+hive --service metastore 
+
+# or run in background
+
+nohup hive --service metastore &
+```
+Run hive server
+```
+hive --service hiveserver2 -hiveconf hive.metastore.uris="thrift:[you hive metastore server host name or ip]:[metastore server port - default is 9083]"
+
+# or run in background
+
+nohup hive --service hiveserver2 -hiveconf hive.metastore.uris="thrift:[you hive metastore server host name or ip]:[metastore server port - default is 9083]" &
+
+
+```
+
